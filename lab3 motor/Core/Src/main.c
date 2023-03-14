@@ -48,7 +48,7 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 uint32_t InputCaptureBuffer[IC_BUFFER_SIZE];
 float averageRisingedgePeriod;
-uint32_t MotorSetDuty = 500;
+uint32_t MotorSetDuty = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -115,15 +115,15 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
-  static uint32_t timestamp = 0;
-  if (HAL_GetTick() >= timestamp)
+	static uint32_t timestamp = 0;
+	if (HAL_GetTick() >= timestamp)
 	{
 	  timestamp = HAL_GetTick()+500;
 	  averageRisingedgePeriod = IC_Calc_Period();
 
-	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, MotorSetDuty);
+	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,MotorSetDuty*100);
 	}
+  }
   /* USER CODE END 3 */
 }
 
