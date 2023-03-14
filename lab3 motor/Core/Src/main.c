@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#define IC_BUFFER_SIZE 12
+#define IC_BUFFER_SIZE 20
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,8 +47,14 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint32_t InputCaptureBuffer[IC_BUFFER_SIZE];
-float averageRisingedgePeriod;
-uint32_t MotorSetDuty = 0;
+float averageRisingedgePeriod_current;
+float averageRisingedgePeriod_last;
+float MotorReadRPM;
+int MotorSetRPM = 0;
+int MotorControlEnable = 0;
+int MotorSetDuty = 0;
+int x = 0;
+int y = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -119,13 +125,73 @@ int main(void)
 	if (HAL_GetTick() >= timestamp)
 	{
 	  timestamp = HAL_GetTick()+500;
-	  averageRisingedgePeriod = IC_Calc_Period();
+	  averageRisingedgePeriod_current = IC_Calc_Period();
+	  MotorReadRPM = 60000000/(averageRisingedgePeriod_current*12*64);
+//	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,MotorSetDuty*10);
 
-	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,MotorSetDuty*100);
+	  switch(MotorControlEnable)
+	  {
+	  case 0:
+		  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,MotorSetDuty*10);
+		  x = 0;
+
+		  break;
+	  case 1:
+//		  MotorReadRPM = 60000000/(averageRisingedgePeriod_current*12*64);
+		  if (MotorSetRPM > MotorReadRPM)
+		  {
+			  x += 1;
+			  y = MotorSetDuty+x;
+			  if ((MotorSetDuty+x) <= 100)
+				  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,(MotorSetDuty+x)*10);
+			  else
+			  {
+				  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,100*10);
+				  x -= 1;
+			  }
+		  }
+		  else if (MotorSetRPM < MotorReadRPM)
+		  {
+			  x -= 1;
+			  if ((MotorSetDuty+x) >= 0)
+				  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,(MotorSetDuty+x)*10);
+			  else
+			  {
+				  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,0*10);
+			  	  x += 1;
+			  }
+		  }
+		  break;
+	  }
+
+
+//		  for (int x = 0; x < 100; x++) {
+//			  if (MotorSetRPM > MotorReadRPM){
+//				  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,(MotorSetDuty+x)*10);
+//			  }
+//			  else if (MotorSetRPM < MotorReadRPM){
+//
+//			  }
+//			 break;
+//		  }
+	  }
+
+
+//		if(averageRisingedgePeriod_current == averageRisingedgePeriod_last)
+//		{
+//			MotorReadRPM = 0;
+//		}
+//		else
+//		{
+//			MotorReadRPM = 60000000/(averageRisingedgePeriod_current*12*64);
+//		}
+//
+//		averageRisingedgePeriod_current = averageRisingedgePeriod_last;
 	}
   }
+
   /* USER CODE END 3 */
-}
+
 
 /**
   * @brief System Clock Configuration
@@ -144,12 +210,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+  RCC_OscInitStruct.PLL.PLLM = 4;
   RCC_OscInitStruct.PLL.PLLN = 84;
   RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 4;
@@ -397,7 +462,7 @@ float IC_Calc_Period()
 
 	uint32_t i = (lastValidDMAPointer - 5 + IC_BUFFER_SIZE)%IC_BUFFER_SIZE;
 
-	int32_t sumdiff = 0;
+	uint32_t sumdiff = 0;
 	while(i!=lastValidDMAPointer)
 	{
 		uint32_t firstCapture  = InputCaptureBuffer[i];
