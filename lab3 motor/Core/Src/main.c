@@ -137,7 +137,6 @@ int main(void)
 
 		  break;
 	  case 1:
-//		  MotorReadRPM = 60000000/(averageRisingedgePeriod_current*12*64);
 		  if (MotorSetRPM > MotorReadRPM)
 		  {
 			  x += 1;
@@ -153,6 +152,7 @@ int main(void)
 		  else if (MotorSetRPM < MotorReadRPM)
 		  {
 			  x -= 1;
+			  y = MotorSetDuty+x;
 			  if ((MotorSetDuty+x) >= 0)
 				  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,(MotorSetDuty+x)*10);
 			  else
@@ -163,35 +163,11 @@ int main(void)
 		  }
 		  break;
 	  }
-
-
-//		  for (int x = 0; x < 100; x++) {
-//			  if (MotorSetRPM > MotorReadRPM){
-//				  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,(MotorSetDuty+x)*10);
-//			  }
-//			  else if (MotorSetRPM < MotorReadRPM){
-//
-//			  }
-//			 break;
-//		  }
-	  }
-
-
-//		if(averageRisingedgePeriod_current == averageRisingedgePeriod_last)
-//		{
-//			MotorReadRPM = 0;
-//		}
-//		else
-//		{
-//			MotorReadRPM = 60000000/(averageRisingedgePeriod_current*12*64);
-//		}
-//
-//		averageRisingedgePeriod_current = averageRisingedgePeriod_last;
 	}
+
   }
-
   /* USER CODE END 3 */
-
+}
 
 /**
   * @brief System Clock Configuration
