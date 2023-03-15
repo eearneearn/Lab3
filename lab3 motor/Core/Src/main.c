@@ -126,13 +126,16 @@ int main(void)
 	{
 	  timestamp = HAL_GetTick()+500;
 	  averageRisingedgePeriod_current = IC_Calc_Period();
-	  MotorReadRPM = 60000000/(averageRisingedgePeriod_current*12*64);
+	  if(averageRisingedgePeriod_current == 0) MotorReadRPM = 0;
+	  else MotorReadRPM = 60000000/(averageRisingedgePeriod_current*12*64);
+
 //	  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,MotorSetDuty*10);
 
 	  switch(MotorControlEnable)
 	  {
 	  case 0:
 		  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,MotorSetDuty*10);
+
 		  x = 0;
 
 		  break;
@@ -153,14 +156,19 @@ int main(void)
 		  {
 			  x -= 1;
 			  y = MotorSetDuty+x;
-			  if ((MotorSetDuty+x) >= 0)
+			  if ((MotorSetDuty+x) > 0)
 				  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,(MotorSetDuty+x)*10);
 			  else
 			  {
 				  __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1,0*10);
-			  	  x += 1;
+				  MotorReadRPM = 0;
+				  x += 1;
 			  }
 		  }
+//		  else if (MotorSetRPM == 0)
+//		  {
+//
+//		  }
 		  break;
 	  }
 	}
@@ -336,7 +344,7 @@ static void MX_TIM2_Init(void)
   sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
   sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
   sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
-  sConfigIC.ICFilter = 0;
+  sConfigIC.ICFilter = 10;
   if (HAL_TIM_IC_ConfigChannel(&htim2, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
